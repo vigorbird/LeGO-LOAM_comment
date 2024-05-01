@@ -56,8 +56,8 @@ private:
     float transformSum[6];
     float transformIncre[6];
     float transformMapped[6];
-    float transformBefMapped[6];
-    float transformAftMapped[6];
+    float transformBefMapped[6];//存储地图优化之前的位姿也就是里程计发布的位姿
+    float transformAftMapped[6];//存储地图优化之后的位姿
 
     std_msgs::Header currentHeader;
 
@@ -91,6 +91,7 @@ public:
         }
     }
 
+	//根据当前帧里程计发布的位姿，和上一个关键帧的位姿和上一个关键帧的里程计的位姿得到当前帧优化之后的位姿
     void transformAssociateToMap()
     {
         float x1 = cos(transformSum[1]) * (transformBefMapped[3] - transformSum[3]) 
@@ -194,7 +195,7 @@ public:
         transformSum[4] = laserOdometry->pose.pose.position.y;
         transformSum[5] = laserOdometry->pose.pose.position.z;
 
-        transformAssociateToMap();
+        transformAssociateToMap();//根据地图调整的结果
 
         geoQuat = tf::createQuaternionMsgFromRollPitchYaw
                   (transformMapped[2], -transformMapped[0], -transformMapped[1]);
@@ -207,12 +208,12 @@ public:
         laserOdometry2.pose.pose.position.x = transformMapped[3];
         laserOdometry2.pose.pose.position.y = transformMapped[4];
         laserOdometry2.pose.pose.position.z = transformMapped[5];
-        pubLaserOdometry2.publish(laserOdometry2);
+        pubLaserOdometry2.publish(laserOdometry2);//非常重要!!!!!!!!!!
 
         laserOdometryTrans2.stamp_ = laserOdometry->header.stamp;
         laserOdometryTrans2.setRotation(tf::Quaternion(-geoQuat.y, -geoQuat.z, geoQuat.x, geoQuat.w));
         laserOdometryTrans2.setOrigin(tf::Vector3(transformMapped[3], transformMapped[4], transformMapped[5]));
-        tfBroadcaster2.sendTransform(laserOdometryTrans2);
+        tfBroadcaster2.sendTransform(laserOdometryTrans2);//非常重要!!!!!!!!!!!
     }
 
     void odomAftMappedHandler(const nav_msgs::Odometry::ConstPtr& odomAftMapped)
@@ -229,6 +230,9 @@ public:
         transformAftMapped[4] = odomAftMapped->pose.pose.position.y;
         transformAftMapped[5] = odomAftMapped->pose.pose.position.z;
 
+
+
+		
         transformBefMapped[0] = odomAftMapped->twist.twist.angular.x;
         transformBefMapped[1] = odomAftMapped->twist.twist.angular.y;
         transformBefMapped[2] = odomAftMapped->twist.twist.angular.z;
@@ -238,6 +242,8 @@ public:
         transformBefMapped[5] = odomAftMapped->twist.twist.linear.z;
     }
 };
+
+
 
 
 int main(int argc, char** argv)
